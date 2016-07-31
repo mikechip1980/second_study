@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?><project-modules id="moduleCoreId" project-version="1.5.0">
+    <wb-module deploy-name="third_beer_adviser">
+        <property name="context-root" value="third_beer_adviser"/>
+        <property name="java-output-path" value="/third_beer_adviser/target/classes"/>
+    </wb-module>
+</project-modules>
