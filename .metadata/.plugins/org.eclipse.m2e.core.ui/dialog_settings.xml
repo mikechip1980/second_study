@@ -20,6 +20,7 @@
 	</section>
 	<section name="MavenProjectImportWizardPage">
 		<list key="rootDirectory">
+			<item value="C:\mike\java\eclipse-workspace\third_beer_adviser"/>
 			<item value="C:\mike\java\eclipse-workspace\second"/>
 		</list>
 		<list key="projectNameTemplate">
