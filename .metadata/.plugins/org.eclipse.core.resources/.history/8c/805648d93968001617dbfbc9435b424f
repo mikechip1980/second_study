@@ -1,0 +1,131 @@
+package xxlx.oracle.apps.fnd.excelReader;
+
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
+
+import org.apache.poi.EncryptedDocumentException;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+/**
+ * Hello world!
+ *
+ */
+
+public class ExcelReader 
+{
+	 private final Workbook wb;
+	 private final Appendable output;
+
+	 private ExcelReader(Workbook wb, Appendable output) {
+	     if (wb == null)
+	         throw new NullPointerException("wb");
+	     if (output == null)
+	         throw new NullPointerException("output");
+	     this.wb = wb;
+	     this.output = output;
+	 }
+	
+	/**
+	  * Creates a new converter to HTML for the given workbook.  This attempts to
+	  * detect whether the input is XML (so it should create an {@link
+	  * XSSFWorkbook} or not (so it should create an {@link HSSFWorkbook}).
+	  *
+	  * @param in     The input stream that has the workbook.
+	  * @param output Where the HTML output will be written.
+	  *
+	  * @return An object for converting the workbook to HTML.
+	  */
+	 public static ExcelReader create(InputStream in, Appendable output)
+	         throws IOException {
+	     try {
+	         Workbook wb = WorkbookFactory.create(in);
+	         return create(wb, output);
+	     } catch (InvalidFormatException e){
+	    	 Logger.logException(e);
+	    	 throw new IllegalArgumentException("Cannot create workbook from stream", e);
+	     }
+	    	 catch (EncryptedDocumentException e) {
+	    	 Logger.logException(e);
+	    	 throw new IllegalArgumentException("Cannot oopen encriped stream", e);  
+	    	   
+	       }
+	     }
+
+	 public static ExcelReader create(File inputFile, Appendable output)
+	         throws IOException {
+	     try {
+	         Workbook wb = WorkbookFactory.create(inputFile);
+	         return create(wb, output);
+	     } catch (InvalidFormatException e){
+	    	 Logger.logException(e);
+	    	 throw new IllegalArgumentException("Cannot create workbook from stream", e);
+	     }
+	    	 catch (EncryptedDocumentException e) {
+	    	 Logger.logException(e);
+	    	 throw new IllegalArgumentException("Cannot oopen encriped stream", e);  
+	    	   
+	       }
+	     }
+	 
+
+	 /**
+	  * Creates a new converter to HTML for the given workbook.
+	  *
+	  * @param wb     The workbook.
+	  * @param output Where the HTML output will be written.
+	  *
+	  * @return An object for converting the workbook to HTML.
+	  */
+	 
+	 
+	 public static ExcelReader create(Workbook wb, Appendable output) {
+	     return new ExcelReader(wb, output);
+	 }
+
+	 
+	public static void main( String[] args ) 
+    {	String fileName="d:/distrib/java/eclipse_workspace/excelReader1/src/main/resource/expense.xlsx";
+		
+    	/*FileInputStream file=null;
+        try { 
+         file = new FileInputStream(fileName);
+		}
+		catch (FileNotFoundException e)
+		{	if (file!=null) file.close();
+			Logger.log(e.getMessage()+ " FileName:"+fileName);
+		}*/
+    
+		File file=null;
+	    try { 
+	     file = new File(fileName);
+		}
+		catch (NullPointerException e)
+		{	
+			Logger.logException(e,"FileName:"+fileName);
+			throw new IOException("File name is empty",e);
+		}
+	    if (!file.exists()) {
+	    	IOException e = new IOException("File does not exists");
+	    	Logger.logException(e,"FileName:"+fileName);
+			throw e;
+	    }
+
+	    StringWriter outWriter=new StringWriter();
+		ExcelReader reader=ExcelReader.create(file, outWriter);
+		
+		if (reader!=null) {
+			Logger.log("Reader is not null");
+			
+		}
+		
+    	
+    }
+}
