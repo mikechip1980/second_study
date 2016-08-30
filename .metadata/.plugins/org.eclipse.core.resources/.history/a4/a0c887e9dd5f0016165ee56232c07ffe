@@ -1,0 +1,16 @@
+package xxlx.oracle.apps.fnd.excelReader;
+
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+/**
+ * Hello world!
+ *
+ */
+
+public class App 
+{
+    private final Workbook wb;
+	public static void main( String[] args )
+    {
+        System.out.println( "Hello World!" );
+    }
+}
