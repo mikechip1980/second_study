@@ -11,17 +11,24 @@
     <dependency>
         <groupId>org.apache.poi</groupId>
         <artifactId>poi</artifactId>
-        <version>3.14</version>
+        <version>3.10.1</version>
     </dependency>
     <dependency>
         <groupId>org.apache.poi</groupId>
         <artifactId>poi-ooxml</artifactId>
-        <version>3.14</version>
+        <version>3.10.1</version>
+     <!--     <version>3.14</version>-->
     </dependency>
-    <dependency>
- <groupId>com.oracle.jdbc</groupId>
- <artifactId>ojdbc7</artifactId>
- <version>12.1.0.2</version>
+        <dependency>
+        <groupId>org.apache.poi</groupId>
+        <artifactId>poi-ooxml-schemas</artifactId>
+        <version>3.10.1</version>
+     <!--     <version>3.14</version>-->
+    </dependency>
+<dependency>
+<groupId>com.oracle</groupId>
+<artifactId>ojdbc7</artifactId>
+<version>12.1.0.2</version>
 </dependency>
   </dependencies>
 <build>

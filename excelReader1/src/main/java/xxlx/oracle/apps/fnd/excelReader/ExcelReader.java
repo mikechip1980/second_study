@@ -30,6 +30,8 @@ public class ExcelReader
 	 private final Workbook wb;
 	 private ReaderCallback sheetHook,rowHook,cellHook;
 	 private HashMap<String,String> properites ;
+	 private  int exceptionLimit;
+	 private ArrayList<rException> exceptionList;
 
 	 private ExcelReader(Workbook wb,ReaderCallback hook) {
 	     if (wb == null)
@@ -44,7 +46,47 @@ public class ExcelReader
 	     properites = new HashMap<String,String> ();
 	     properites.put("SET_ROW_ARRAY", "true");
 	     properites.put("IGNORE_MIDDLE_NULLS", "false");
+	     properites.put("TOSTRING_EMPTY_CELL", "NULL");
+	     properites.put("TOSTRING_DELIMETER", " , ");
 	 }
+	 
+	 public static class rException extends Exception {
+		 String methodName;
+		 public rException(String errorMessage) {super(errorMessage);this.methodName=methodName;}
+		 public String toString() { return "Method Name:"+methodName+" ErrorMessage:"+this.getMessage();}
+	 }
+	 public static class SheetException  extends rException {
+		 String sheetName; int sheetNumber;
+		 public SheetException (int sheetNumber,String sheetName, String errorMessage) {
+			 super(errorMessage);
+			 this.methodName="newSheet";
+			 this.sheetNumber=sheetNumber;this.sheetName=sheetName;}
+		 public String toString() { return super.toString()+"\n SheetNumber:"+sheetNumber+" SheetName:"+sheetName;}
+	 }
+	 
+	 public static class RowException extends SheetException {
+		 int rowNumber; private String rowContent;
+		 public RowException (int sheetNumber,String sheetName,int rowNumber,Row row, String errorMessage) {
+			 super(sheetNumber, sheetName,errorMessage);
+			 this.rowNumber=rowNumber;
+			 this.methodName="newRow";
+			 rowContent=rowToString(row);
+		 }
+		 public String toString() { return super.toString()+"\n rowNumber:"+rowNumber+" RowContent:"+rowContent;}
+	 }
+	 
+	 
+	 public  class CellException  extends RowException{
+		 int cellNumber; String cellContent;
+		 public CellException (int sheetNumber,String sheetName,int rowNumber,Row row, int cellNumber, Cell cell, String errorMessage) {
+			 super(sheetNumber,sheetName,rowNumber,row, errorMessage);
+			 this.cellNumber=cellNumber;
+			 this.methodName="newCell";
+			 cellContent=cellToString(cell);
+		 }
+		 public String toString() { return super.toString()+"\n cellNumber:"+cellNumber+" CellContent:"+cellContent;}
+	 }
+	 
 	 
 	 public String getProperty(String name){
 		 return properites.get(name);
@@ -53,7 +95,18 @@ public class ExcelReader
 	 public void setCellHook(ReaderCallback hook){
 		 this.cellHook=hook;
 	 }
+	 
+	 public void setExceptionLimit(int limit){
+		 this.exceptionLimit=limit;
+	 }
+	 public int getExceptionLimit(){
+		 return this.exceptionLimit;
+	 }
 	
+	 public  ArrayList<rException> getExceptionList(){
+		 return this.exceptionList;
+	 }
+	 
 	/**
 	  * Creates a new converter to HTML for the given workbook.  This attempts to
 	  * detect whether the input is XML (so it should create an {@link
@@ -80,6 +133,26 @@ public class ExcelReader
 	       }
 	     }
 
+	 
+	 public static ExcelReader create(String fileName,ReaderCallback hook)
+	         throws IOException {
+			File file=null;
+		    try { 
+		     file = new File(fileName);
+			}
+			catch (NullPointerException e)
+			{	
+				Logger.logException(e,"FileName:"+fileName);
+				throw new IOException("File name is empty",e);
+			}
+		    if (!file.exists()) {
+		    	IOException e = new IOException("File does not exists");
+		    	Logger.logException(e,"FileName:"+fileName);
+				throw e;
+		    }
+		     return create(file,hook);
+	       }
+	 
 	 public static ExcelReader create(File inputFile,ReaderCallback hook)
 	         throws IOException {
 	     try {
@@ -98,7 +171,7 @@ public class ExcelReader
 	
 	 public void close() {
 		 if (wb!=null){
-			 try {
+			 try { 
 				wb.close();
 			} catch (IOException e) {
 				Logger.logException(e);
@@ -106,13 +179,28 @@ public class ExcelReader
 		 }
 	 }
 	 
-	 private void handleHookException(String hookMethod,Exception e)
+	 private void handleHookException(rException e)
 	 {
-		 Logger.logException(e,hookMethod);
+		 if (exceptionList==null) exceptionList= new ArrayList<rException>();
+		 exceptionList.add(e);
 	 }
 	
+	 private static String rowToString(Row row) {
+		 ArrayList cells = getRowArray(row);
+		 StringBuilder result=new StringBuilder();
+	//	 String emptyCell=getProperty("TOSTRING_EMPTY_CELL");
+	//	 String delimeter=getProperty("TOSTRING_DELIMETER");
+		 for (Object cell:cells) {
+				 result.append((cell==null?"NULL":cell.toString())).append(" ; ");	
+		 }
+		 return result.toString();
+	 }
 	 
-	 public Object getCastedCell(Cell cell) {
+	 private static String cellToString(Cell cell) {
+		 return getCastedCell(cell).toString();
+	 }
+	 
+	 public static Object getCastedCell(Cell cell) {
 		// Logger.log("getCastedCell start"); 
 		 
 		 if (cell==null) 
@@ -157,7 +245,7 @@ public class ExcelReader
 
 	 
 	 @SuppressWarnings("rawtypes")
-	private ArrayList setRowArray(Row row)
+	private static ArrayList getRowArray(Row row)
 	 {
 		 Logger.log("setRowArray");
 		 int lastCellNum = 0;
@@ -181,7 +269,7 @@ public class ExcelReader
 	 }
 	 
 	 @SuppressWarnings("unchecked")
-	private ArrayList readCells(Row row,int rowNum) {
+	private ArrayList readCells(Sheet sheet,int sheetNum,Row row,int rowNum) {
 		 Logger.log("readCells start");
 		 int lastCellNum = 0;
 		 Cell cell=null;
@@ -202,7 +290,7 @@ public class ExcelReader
 						result.add( cellHook.newCell(cell,rowNum,j, getCastedCell(cell)));
 					 }
 					 catch (Exception e) {
-						 handleHookException("newRow",e);
+						 handleHookException(new CellException (sheetNum,sheet.getSheetName(),rowNum,row,j,cell,e.getMessage()));
 					 } 
 		             
 		         }
@@ -212,7 +300,7 @@ public class ExcelReader
 		 return result;
 	 } 
 	 
-	 private void readRows(Sheet sheet) {
+	 private void readRows(Sheet sheet,int sheetNum) {
 		 Logger.log("readRows start");
 		 int lastRowNum = sheet.getLastRowNum();
          for(int j = 0; j <= lastRowNum; j++) {
@@ -224,13 +312,13 @@ public class ExcelReader
              if ("true".equals(getProperty("SET_ROW_ARRAY"))) {
             	 rowArray=setRowArray(row);
              }*/
-             ArrayList castedCells = readCells(row,j);
+             ArrayList castedCells = readCells(sheet, sheetNum,row,j);
              
 			 try {
 				 rowHook.newRow(row,j,castedCells);
 			 }
 			 catch (Exception e) {
-				 handleHookException("newRow",e);
+				 handleHookException(new RowException (sheetNum,sheet.getSheetName(),j,row,e.getMessage()));
 			 } 
              
              
@@ -252,10 +340,10 @@ public class ExcelReader
 				 sheetHook.newSheet(sheet, k);
 			 }
 			 catch (Exception e) {
-				 handleHookException("newSheet",e);
+				 handleHookException(new SheetException (k,sheet.getSheetName(),e.getMessage()));
 			 } 
 			 if(sheet.getPhysicalNumberOfRows() > 0) {
-				 readRows(sheet);
+				 readRows(sheet,k);
 			 }	 
 			 
 		 }
